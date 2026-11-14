@@ -83,7 +83,7 @@ Public requests (`app.security.public-routes`): `POST /api/v1/user`, `POST /api/
 |---|---|
 | `JWT_SECRET` | none, required: at least 64 bytes, the same value as in auth-service |
 | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | `localhost`, `6379`, `secret`: the Redis of auth-service |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` |
+| `CORS_ALLOWED_ORIGINS` | localhost and 127.0.0.1 on any port, and `https://cson.site`. Comma-separated Spring origin patterns; `[*]` means any port |
 | `*_SERVICE_URL` | see the routes table |
 
 `docker compose up -d` starts the Redis shared with auth-service.

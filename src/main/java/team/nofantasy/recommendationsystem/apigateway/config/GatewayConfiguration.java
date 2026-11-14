@@ -15,12 +15,15 @@ import java.util.List;
 public class GatewayConfiguration {
     /**
      * Answers CORS preflight requests before routing, so they never need a token.
-     * Credentials are allowed because the refresh token travels in a cookie.
+     * Credentials are allowed because the refresh token travels in a cookie; that is why origins are
+     * listed as patterns instead of {@code *}, which browsers refuse together with credentials.
      */
     @Bean
     public CorsWebFilter corsWebFilter(CorsProperties corsProperties) {
         CorsConfiguration cors = new CorsConfiguration();
-        cors.setAllowedOrigins(corsProperties.allowedOrigins() == null ? List.of() : corsProperties.allowedOrigins());
+        cors.setAllowedOriginPatterns(
+                corsProperties.allowedOriginPatterns() == null ? List.of() : corsProperties.allowedOriginPatterns()
+        );
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("*"));
         cors.setAllowCredentials(true);

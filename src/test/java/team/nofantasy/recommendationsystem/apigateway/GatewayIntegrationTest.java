@@ -182,13 +182,27 @@ class GatewayIntegrationTest {
     }
 
     @Test
-    void corsPreflightFromFrontendIsAnswered() {
-        webTestClient.options().uri("/api/v1/profiles/me")
-                .header(HttpHeaders.ORIGIN, "http://localhost:4200")
-                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PUT")
-                .exchange()
-                .expectStatus().isOk()
-                .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:4200")
-                .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+    void corsAllowsLocalhostOnAnyPortAndTheProductionSite() {
+        for (String origin : List.of("http://localhost:4200", "http://localhost", "http://127.0.0.1:8081", "https://cson.site")) {
+            webTestClient.options().uri("/api/v1/profiles/me")
+                    .header(HttpHeaders.ORIGIN, origin)
+                    .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PUT")
+                    .exchange()
+                    .expectStatus().isOk()
+                    .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin)
+                    .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        }
+    }
+
+    @Test
+    void corsRejectsOtherOrigins() {
+        for (String origin : List.of("https://evil.example", "http://cson.site", "https://cson.site.evil.example")) {
+            webTestClient.options().uri("/api/v1/profiles/me")
+                    .header(HttpHeaders.ORIGIN, origin)
+                    .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PUT")
+                    .exchange()
+                    .expectStatus().isForbidden()
+                    .expectHeader().doesNotExist(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN);
+        }
     }
 }

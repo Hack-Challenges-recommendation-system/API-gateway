@@ -5,10 +5,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.List;
 
 /**
- * @param allowedOrigins origins of the frontend when it isn't served from the same origin, e.g. {@code http://localhost:4200}.
+ * @param allowedOriginPatterns origins allowed to call the API from a browser, as Spring origin patterns:
+ *                              {@code http://localhost:[*]} allows every port of localhost.
  */
 @ConfigurationProperties("app.cors")
 public record CorsProperties(
-        List<String> allowedOrigins
+        List<String> allowedOriginPatterns
 ) {
 }

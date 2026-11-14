@@ -53,7 +53,8 @@ app:
       - GET /api/v1/materials/**
       - GET /api/v1/metrics/**
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+    # Comma-separated Spring origin patterns; [*] matches any port.
+    allowed-origin-patterns: "${CORS_ALLOWED_ORIGINS:http://localhost,http://localhost:[*],http://127.0.0.1,http://127.0.0.1:[*],https://cson.site}"
 
 logging:
   level:
