@@ -22,7 +22,7 @@ permissions:
 
 env:
   SERVICE: api-gateway
-  IMAGE: ${{ vars.DOCKERHUB_USER }}/recommendation-system-api-gateway
+  IMAGE: ${{ vars.DOCKERHUB_USER }}/hackathon-recommendation-system-api-gateway
 
 jobs:
   test:
