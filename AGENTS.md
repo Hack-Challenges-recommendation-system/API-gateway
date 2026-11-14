@@ -17,23 +17,23 @@ The single entry point for the frontend. It checks access tokens, routes request
 
 1. Any `X-User-Id` sent by the client is removed.
 2. `security/AccessTokenVerifier` checks `Authorization: Bearer <token>`: the HS512 signature with `JWT_SECRET` (the same value auth-service uses), the expiry, the claim `type` = `ACCESS` and a UUID in `sub`. Refresh tokens are signed with the same key, so the `type` check is what stops them.
-3. The token is rejected if Redis has `jwt:denylist:<jti>`, which auth-service writes on logout.
-4. A valid token sets `X-User-Id` to `sub`. Without one, a protected route answers 401 with `WWW-Authenticate: Bearer`, and a public route goes through anonymously.
-5. If Redis doesn't answer, a protected route answers 503 instead of letting the token through.
+3. The token is rejected with 401 if Redis has `jwt:denylist:<jti>`, which auth-service writes on logout. This holds for public routes too.
+4. A valid token sets `X-User-Id` to `sub`. Without a token, or with one that fails verification, a protected route answers 401 with `WWW-Authenticate: Bearer`, and a public route goes through anonymously.
+5. If Redis doesn't answer while a valid token is checked, the request answers 503, public or not, instead of letting the token through.
 
-`GatewayConfiguration` answers CORS preflight requests from `CORS_ALLOWED_ORIGINS`, with credentials, because the refresh token is a cookie. `GET /api/v1/health` is the health check of the gateway itself. The health endpoints of the services aren't routed: they all share that path.
+`CorsConfiguration` answers CORS preflight requests from `CORS_ALLOWED_ORIGINS`, with credentials, because the refresh token is a cookie. `GET /api/v1/health` is the health check of the gateway itself. The health endpoints of the services aren't routed: they all share that path.
 
 ## Routes and public requests
 
 Both live in `application.yaml`. Every service listens on 8080 and serves under `/api/v1`, so paths are forwarded unchanged.
 
-| Path prefix | Service | URL variable |
-|---|---|---|
-| `/api/v1/auth/**`, `/api/v1/user/**`, `/api/v1/session/**` | auth-service | `AUTH_SERVICE_URL` |
-| `/api/v1/profiles/**` | profile-service | `PROFILE_SERVICE_URL` |
-| `/api/v1/materials/**` | catalog-service | `CATALOG_SERVICE_URL` |
-| `/api/v1/events/**`, `/api/v1/metrics/**` | metric-service | `METRIC_SERVICE_URL` |
-| `/api/v1/recommendations/**` | recommendation-service; 120 s timeout for LLM answers | `RECOMMENDATION_SERVICE_URL` |
+| Path prefix                                                | Service                                               | URL variable                 |
+|------------------------------------------------------------|-------------------------------------------------------|------------------------------|
+| `/api/v1/auth/**`, `/api/v1/user/**`, `/api/v1/session/**` | auth-service                                          | `AUTH_SERVICE_URL`           |
+| `/api/v1/profiles/**`                                      | profile-service                                       | `PROFILE_SERVICE_URL`        |
+| `/api/v1/materials/**`                                     | catalog-service                                       | `CATALOG_SERVICE_URL`        |
+| `/api/v1/events/**`, `/api/v1/metrics/**`                  | metric-service                                        | `METRIC_SERVICE_URL`         |
+| `/api/v1/recommendations/**`                               | recommendation-service; 120 s timeout for LLM answers | `RECOMMENDATION_SERVICE_URL` |
 
 The URL variables default to the compose service names, e.g. `http://auth-service:8080`.
 
@@ -41,12 +41,12 @@ Public requests (`app.security.public-routes`): `POST /api/v1/user`, `POST /api/
 
 ## Configuration
 
-| Variable | Default |
-|---|---|
-| `JWT_SECRET` | none, required: at least 64 bytes, the same value as in auth-service |
-| `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | `localhost`, `6379`, `secret`: the Redis of auth-service |
-| `CORS_ALLOWED_ORIGINS` | localhost and 127.0.0.1 on any port, and `https://cson.site`. Comma-separated Spring origin patterns; `[*]` means any port |
-| `*_SERVICE_URL` | see the routes table |
+| Variable                                     | Default                                                                                                                    |
+|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `JWT_SECRET`                                 | none, required: at least 64 bytes, the same value as in auth-service                                                       |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | `localhost`, `6379`, `secret`: the Redis of auth-service                                                                   |
+| `CORS_ALLOWED_ORIGINS`                       | localhost and 127.0.0.1 on any port, and `https://cson.site`. Comma-separated Spring origin patterns; `[*]` means any port |
+| `*_SERVICE_URL`                              | see the routes table                                                                                                       |
 
 `docker compose up -d` starts the Redis shared with auth-service.
 

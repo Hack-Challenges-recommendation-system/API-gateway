@@ -1,7 +1,9 @@
 package team.nofantasy.recommendationsystem.apigateway.filter;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -13,6 +15,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import team.nofantasy.recommendationsystem.apigateway.error.ErrorResponseWriter;
 import team.nofantasy.recommendationsystem.apigateway.security.AccessToken;
 import team.nofantasy.recommendationsystem.apigateway.security.AccessTokenVerifier;
 import team.nofantasy.recommendationsystem.apigateway.security.PublicRoutes;
@@ -52,20 +55,21 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     private final ReactiveStringRedisTemplate redisTemplate;
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    @NullMarked
+    public Mono<Void> filter(@NotNull ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         boolean isPublic = publicRoutes.isPublic(request.getMethod(), request.getPath().pathWithinApplication());
 
         Optional<AccessToken> accessToken = bearerToken(request).flatMap(accessTokenVerifier::verify);
-        if (accessToken.isEmpty()) {
-            return isPublic ? chain.filter(forward(exchange, null)) : reject(exchange, HttpStatus.UNAUTHORIZED);
-        }
-
-        return checkDenylist(accessToken.get()).flatMap(check -> switch (check) {
-            case ALLOWED -> chain.filter(forward(exchange, accessToken.get().userId()));
-            case DENYLISTED -> isPublic ? chain.filter(forward(exchange, null)) : reject(exchange, HttpStatus.UNAUTHORIZED);
-            case UNAVAILABLE -> isPublic ? chain.filter(forward(exchange, null)) : reject(exchange, HttpStatus.SERVICE_UNAVAILABLE);
-        });
+        return accessToken.map(
+                token -> checkDenylist(token).flatMap(
+                        check -> switch (check) {
+                            case ALLOWED -> chain.filter(forward(exchange, token.userId()));
+                            case DENYLISTED -> reject(exchange, HttpStatus.UNAUTHORIZED);
+                            case UNAVAILABLE -> reject(exchange, HttpStatus.SERVICE_UNAVAILABLE);
+                        }
+                )
+        ).orElseGet(() -> isPublic ? chain.filter(forward(exchange, null)) : reject(exchange, HttpStatus.UNAUTHORIZED));
     }
 
     @Override
@@ -86,21 +90,24 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     private Mono<DenylistCheck> checkDenylist(AccessToken accessToken) {
         return redisTemplate.hasKey(DENYLIST_PREFIX + accessToken.jti())
                 .map(denylisted -> denylisted ? DenylistCheck.DENYLISTED : DenylistCheck.ALLOWED)
-                .onErrorResume(e -> {
-                    log.atError()
+                .onErrorResume(
+                        e -> {
+                            log.atError()
                             .setMessage("Denylist check failed")
                             .setCause(e)
                             .log();
-                    return Mono.just(DenylistCheck.UNAVAILABLE);
-                });
+                            return Mono.just(DenylistCheck.UNAVAILABLE);
+                        }
+                );
     }
 
     private static ServerWebExchange forward(ServerWebExchange exchange, @Nullable UUID userId) {
         ServerHttpRequest request = exchange.getRequest().mutate()
                 .headers(headers -> {
-                    headers.remove(USER_ID_HEADER);
                     if (userId != null) {
                         headers.set(USER_ID_HEADER, userId.toString());
+                    } else {
+                        headers.remove(USER_ID_HEADER);
                     }
                 })
                 .build();
@@ -121,6 +128,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             exchange.getResponse().getHeaders().set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
         }
 
-        return exchange.getResponse().setComplete();
+        return ErrorResponseWriter.write(
+                exchange,
+                status,
+                status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "The service is temporarily unavailable"
+        );
     }
 }

@@ -5,7 +5,7 @@ import org.springframework.http.server.PathContainer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
-import team.nofantasy.recommendationsystem.apigateway.config.SecurityProperties;
+import team.nofantasy.recommendationsystem.apigateway.configuration.properties.PublicRoutesConfigurationProperties;
 
 import java.util.List;
 import java.util.Locale;
@@ -15,7 +15,10 @@ import java.util.Locale;
  */
 @Component
 public class PublicRoutes {
-    private record Rule(HttpMethod method, PathPattern pattern) {
+    private record Rule(
+            HttpMethod method,
+            PathPattern pattern
+    ) {
     }
 
     private final List<Rule> rules;
@@ -23,8 +26,8 @@ public class PublicRoutes {
     /**
      * @throws IllegalArgumentException if an entry doesn't look like {@code "GET /api/v1/materials/**"}.
      */
-    public PublicRoutes(SecurityProperties securityProperties) {
-        List<String> entries = securityProperties.publicRoutes() == null ? List.of() : securityProperties.publicRoutes();
+    public PublicRoutes(PublicRoutesConfigurationProperties publicRoutes) {
+        List<String> entries = publicRoutes.publicRoutes() == null ? List.of() : publicRoutes.publicRoutes();
 
         this.rules = entries.stream().map(PublicRoutes::parse).toList();
     }

@@ -11,6 +11,7 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -100,7 +101,10 @@ class GatewayIntegrationTest {
         webTestClient.get().uri("/api/v1/profiles/me")
                 .exchange()
                 .expectStatus().isUnauthorized()
-                .expectHeader().valueEquals(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+                .expectHeader().valueEquals(HttpHeaders.WWW_AUTHENTICATE, "Bearer")
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(401)
+                .jsonPath("$.message").isEqualTo("Authentication is required");
     }
 
     @Test
@@ -148,6 +152,19 @@ class GatewayIntegrationTest {
     }
 
     @Test
+    void loggedOutTokenIsRejectedEvenOnPublicRoute() {
+        String jti = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set("jwt:denylist:" + jti, "").block();
+
+        webTestClient.get().uri("/api/v1/materials/m-1")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken(UUID.randomUUID(), jti))
+                .exchange()
+                .expectStatus().isUnauthorized()
+                .expectHeader().valueEquals(HttpHeaders.WWW_AUTHENTICATE, "Bearer")
+                .expectBody().jsonPath("$.status").isEqualTo(401);
+    }
+
+    @Test
     void onlyTheListedMethodsArePublic() {
         webTestClient.post().uri("/api/v1/user").exchange().expectStatus().isOk();
         webTestClient.delete().uri("/api/v1/user").exchange().expectStatus().isUnauthorized();
@@ -173,7 +190,12 @@ class GatewayIntegrationTest {
 
     @Test
     void unknownPathIsNotFound() {
-        webTestClient.get().uri("/api/v1/unknown").exchange().expectStatus().isNotFound();
+        webTestClient.get().uri("/api/v1/unknown").exchange()
+                .expectStatus().isNotFound()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(404)
+                .jsonPath("$.error").isEqualTo("Not Found");
     }
 
     @Test
@@ -183,7 +205,8 @@ class GatewayIntegrationTest {
 
     @Test
     void corsAllowsLocalhostOnAnyPortAndTheProductionSite() {
-        for (String origin : List.of("http://localhost:4200", "http://localhost", "http://127.0.0.1:8081", "https://cson.site")) {
+        for (String origin :
+                List.of("http://localhost:4200", "http://localhost", "http://127.0.0.1:8081", "https://cson.site")) {
             webTestClient.options().uri("/api/v1/profiles/me")
                     .header(HttpHeaders.ORIGIN, origin)
                     .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PUT")

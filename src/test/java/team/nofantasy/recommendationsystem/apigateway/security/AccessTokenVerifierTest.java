@@ -4,7 +4,7 @@ import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
-import team.nofantasy.recommendationsystem.apigateway.config.JwtProperties;
+import team.nofantasy.recommendationsystem.apigateway.configuration.properties.JwtSecretConfigurationProperties;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AccessTokenVerifierTest {
     private static final String SECRET = "integration-test-secret-".repeat(4);
 
-    private final AccessTokenVerifier verifier = new AccessTokenVerifier(new JwtProperties(SECRET));
+    private final AccessTokenVerifier verifier = new AccessTokenVerifier(new JwtSecretConfigurationProperties(SECRET));
     private final UUID userId = UUID.randomUUID();
 
     /**
@@ -74,9 +74,9 @@ class AccessTokenVerifierTest {
 
     @Test
     void refusesShortSecret() {
-        assertThatThrownBy(() -> new AccessTokenVerifier(new JwtProperties("too-short")))
+        assertThatThrownBy(() -> new AccessTokenVerifier(new JwtSecretConfigurationProperties("too-short")))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new AccessTokenVerifier(new JwtProperties(null)))
+        assertThatThrownBy(() -> new AccessTokenVerifier(new JwtSecretConfigurationProperties(null)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -13,7 +13,8 @@ import org.testcontainers.utility.DockerImageName;
 public class TestcontainersConfiguration {
     @Bean
     @ServiceConnection(name = "redis")
-    GenericContainer<?> redisContainer() {
+    @SuppressWarnings(value = {"resource"})
+    public GenericContainer<?> redisContainer() {
         return new GenericContainer<>(DockerImageName.parse("redis:8-alpine")).withExposedPorts(6379);
     }
 }
