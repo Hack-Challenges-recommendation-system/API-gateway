@@ -1,0 +1,17 @@
+# Infrastructure for running api-gateway on the host (IDE or mvn spring-boot:run).
+# Every service uses the project name "recommendation-system", so this Redis is the one auth-service writes to.
+name: recommendation-system
+
+services:
+  # Keep this definition identical to the one in auth-service, or compose recreates the shared container.
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-secret}"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
