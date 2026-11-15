@@ -73,7 +73,7 @@ class AuthenticationFilterTest {
     void redisFailureAnswers503EvenOnPublicRoute() {
         when(redis.hasKey(anyString())).thenReturn(Mono.error(new IllegalStateException("redis is down")));
 
-        for (String path : List.of("/api/v1/profiles/me", "/api/v1/materials/m-1")) {
+        for (String path : List.of("/api/v1/profile/me", "/api/v1/materials/m-1")) {
             reachedUpstream.set(false);
             MockServerWebExchange exchange = run(path);
 
@@ -87,7 +87,7 @@ class AuthenticationFilterTest {
     void denylistedTokenAnswers401EvenOnPublicRoute() {
         when(redis.hasKey(anyString())).thenReturn(Mono.just(true));
 
-        for (String path : List.of("/api/v1/profiles/me", "/api/v1/materials/m-1")) {
+        for (String path : List.of("/api/v1/profile/me", "/api/v1/materials/m-1")) {
             reachedUpstream.set(false);
             MockServerWebExchange exchange = run(path);
 
@@ -102,7 +102,7 @@ class AuthenticationFilterTest {
     void validTokenReachesUpstream() {
         when(redis.hasKey(anyString())).thenReturn(Mono.just(false));
 
-        run("/api/v1/profiles/me");
+        run("/api/v1/profile/me");
 
         assertThat(reachedUpstream).isTrue();
     }

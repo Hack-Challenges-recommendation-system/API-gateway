@@ -32,7 +32,7 @@ class PublicRoutesTest {
         assertThat(isPublic(HttpMethod.POST, "/api/v1/materials")).isFalse();
         assertThat(isPublic(HttpMethod.DELETE, "/api/v1/user")).isFalse();
         assertThat(isPublic(HttpMethod.PUT, "/api/v1/user/password")).isFalse();
-        assertThat(isPublic(HttpMethod.GET, "/api/v1/profiles/me")).isFalse();
+        assertThat(isPublic(HttpMethod.GET, "/api/v1/profile/me")).isFalse();
     }
 
     @Test
