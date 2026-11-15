@@ -98,7 +98,7 @@ class GatewayIntegrationTest {
 
     @Test
     void protectedRouteWithoutTokenIsUnauthorized() {
-        webTestClient.get().uri("/api/v1/profiles/me")
+        webTestClient.get().uri("/api/v1/profile/me")
                 .exchange()
                 .expectStatus().isUnauthorized()
                 .expectHeader().valueEquals(HttpHeaders.WWW_AUTHENTICATE, "Bearer")
@@ -111,13 +111,13 @@ class GatewayIntegrationTest {
     void accessTokenSetsUserIdInsteadOfSpoofedOne() {
         UUID userId = UUID.randomUUID();
 
-        webTestClient.get().uri("/api/v1/profiles/me")
+        webTestClient.get().uri("/api/v1/profile/me")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken(userId, UUID.randomUUID().toString()))
                 .header("X-User-Id", UUID.randomUUID().toString())
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.path").isEqualTo("/api/v1/profiles/me")
+                .jsonPath("$.path").isEqualTo("/api/v1/profile/me")
                 .jsonPath("$.userId").isEqualTo(userId.toString());
     }
 
@@ -145,7 +145,7 @@ class GatewayIntegrationTest {
         String jti = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set("jwt:denylist:" + jti, "").block();
 
-        webTestClient.get().uri("/api/v1/profiles/me")
+        webTestClient.get().uri("/api/v1/profile/me")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken(userId, jti))
                 .exchange()
                 .expectStatus().isUnauthorized();
@@ -177,7 +177,7 @@ class GatewayIntegrationTest {
         String bearer = "Bearer " + accessToken(UUID.randomUUID(), UUID.randomUUID().toString());
 
         for (String path : List.of(
-                "/api/v1/session", "/api/v1/profiles/me", "/api/v1/materials/search",
+                "/api/v1/session", "/api/v1/profile/me", "/api/v1/materials/search",
                 "/api/v1/events/me", "/api/v1/metrics/experiment", "/api/v1/recommendations/me"
         )) {
             webTestClient.get().uri(path)
@@ -207,7 +207,7 @@ class GatewayIntegrationTest {
     void corsAllowsLocalhostOnAnyPortAndTheProductionSite() {
         for (String origin :
                 List.of("http://localhost:4200", "http://localhost", "http://127.0.0.1:8081", "https://cson.site")) {
-            webTestClient.options().uri("/api/v1/profiles/me")
+            webTestClient.options().uri("/api/v1/profile/me")
                     .header(HttpHeaders.ORIGIN, origin)
                     .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PUT")
                     .exchange()
@@ -220,7 +220,7 @@ class GatewayIntegrationTest {
     @Test
     void corsRejectsOtherOrigins() {
         for (String origin : List.of("https://evil.example", "http://cson.site", "https://cson.site.evil.example")) {
-            webTestClient.options().uri("/api/v1/profiles/me")
+            webTestClient.options().uri("/api/v1/profile/me")
                     .header(HttpHeaders.ORIGIN, origin)
                     .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "PUT")
                     .exchange()

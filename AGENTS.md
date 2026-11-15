@@ -30,7 +30,7 @@ Both live in `application.yaml`. Every service listens on 8080 and serves under 
 | Path prefix                                                | Service                                               | URL variable                 |
 |------------------------------------------------------------|-------------------------------------------------------|------------------------------|
 | `/api/v1/auth/**`, `/api/v1/user/**`, `/api/v1/session/**` | auth-service                                          | `AUTH_SERVICE_URL`           |
-| `/api/v1/profiles/**`                                      | profile-service                                       | `PROFILE_SERVICE_URL`        |
+| `/api/v1/profile/**`                                       | profile-service                                       | `PROFILE_SERVICE_URL`        |
 | `/api/v1/materials/**`                                     | catalog-service                                       | `CATALOG_SERVICE_URL`        |
 | `/api/v1/events/**`, `/api/v1/metrics/**`                  | metric-service                                        | `METRIC_SERVICE_URL`         |
 | `/api/v1/recommendations/**`                               | recommendation-service; 120 s timeout for LLM answers | `RECOMMENDATION_SERVICE_URL` |
